@@ -1,14 +1,17 @@
 {
-  "private": true,
   "name": "{{name}}",
   "type": "module",
   "version": "{{version}}",
+  "main": "./src/index.ts",
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  },
   "files": [
     "src/*.ts",
     "README.md",
     "package.json"
   ],
-  "main": "./src/index.ts",
   "peerDependencies": {
     "axios": "^0.27.2"
   }
