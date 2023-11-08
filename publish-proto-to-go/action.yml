@@ -1,0 +1,58 @@
+name: 'Publish Proto to Go'
+description: 'Lints and generates Go stubs from proto files and publishes them to GitHub Packages.'
+
+inputs:
+  version:
+    description: 'The version of the package.'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.20'  # 특정 go 버전 필요한지는 각 인터페이스별로 정의된게 있는지 확인해봐야함...
+
+    - name: Validate SemVer 2.0
+      id: semver
+      run: |
+        # https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string 요거 맞는지 검사 필요
+        if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+)?$ ]]; then
+          echo "Version ${{ inputs.version }} SemVer 2.0 스펙에 맞지 않습니다."
+          exit 1
+        fi
+      shell: bash
+
+    - name: Setting buf configuration
+      run: |
+        mkdir -p ${{ github.workspace }}/protobuf
+        cp -a ./publish-proto-to-go/buf.* ${{ github.workspace }}/protobuf/
+      shell: bash  
+
+    - name: Lint proto files
+      run: buf lint # 이거 lint 설정 값 필요한지 확인 필요 기존에 protolint랑 결과물이 다름... buf lint가 걸리는게 훨씬 많음
+      shell: bash
+
+    - name: Generate Go stubs from proto files
+      run: buf generate # 여기서 buf.*.yml 설정파일 읽어서 generate 해야함.
+      shell: bash
+
+    - name: Publish stubs to GitHub Packages
+      run: |
+        # interface github packages에 업로드
+      shell: bash
+
+    - name: Create an orphan commit with the stubs
+      run: |
+        # packages 업로드랑 commit이랑 상관관계 알아야 함.
+      shell: bash
+
+    - name: Cleanup
+      if: always()
+      run: |
+        # gen_src/go 이거 유지해야 하나??? 지워도 되는가? 에 따라 
+      shell: bash
