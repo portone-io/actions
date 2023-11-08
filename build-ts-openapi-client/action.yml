@@ -1,19 +1,43 @@
 name: Build TypeScript OpenAPI Client
+
+inputs:
+  schema-path:
+    description: openapi entrypoint (json or yaml)
+    required: true
+  package-name:
+    required: true
+  package-version:
+    required: true
+  openapi-generator-version:
+    default: v6.2.1
+  generator-type:
+    default: typescript-axios
+  generator-cli-args:
+    default: --additional-properties paramNaming=original,supportsES6=true
+
 runs:
   using: composite
   steps:
     - uses: openapi-generators/openapitools-generator-action@v1
       with:
-        generator: typescript-axios
-        config-file: ./rest/merchant_server.yaml
-        generator-tag: v6.2.1
-        command-args: --additional-properties paramNaming=original,supportsES6=true
+        config-file: ${{ inputs.schema-path }}
+        generator-tag: ${{ inputs.openapi-generator-version }}
+        generator: ${{ inputs.generator-type }}
+        command-args: ${{ inputs.generator-cli-args }}
     - shell: bash
       run: |
-        mkdir dist
-        mv typescript-axios-client dist/src
-        cd dist
-        cp ${{ github.action_path }}/template/package.json ./package.json
-        cp ${{ github.action_path }}/template/README.md ./README.md
-        # TODO: publish to github package registry
-        # TODO: 패키징 해보고 쓸데없는 파일 안 들어갔는지 확인하기
+        # `dist/npm` 폴더에 패키지를 빌드할 것임
+        mkdir -p dist/npm
+
+        # openapitools-generator-action이 빌드한 결과물을 `dist/npm/src`로 이동
+        mv ${{ inputs.generator-type }}-client dist/npm/src
+
+        cd dist/npm
+
+        # 템플릿 파일들 빌드
+        for f in ${{ github.action_path }}/template/*
+        do
+          echo '{ "name": "${{ inputs.package-name }}", "version": "${{ inputs.package-version }}" }' \
+            | npx mustache - ${{ github.action_path }}/template/$f \
+            > ./$f
+        done

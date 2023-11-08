@@ -4,7 +4,7 @@
   "type": "module",
   "version": "{{version}}",
   "files": [
-    "src",
+    "src/*.ts",
     "README.md",
     "package.json"
   ],
