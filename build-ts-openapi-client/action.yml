@@ -1,0 +1,19 @@
+name: Build TypeScript OpenAPI Client
+runs:
+  using: composite
+  steps:
+    - uses: openapi-generators/openapitools-generator-action@v1
+      with:
+        generator: typescript-axios
+        config-file: ./rest/merchant_server.yaml
+        generator-tag: v6.2.1
+        command-args: --additional-properties paramNaming=original,supportsES6=true
+    - shell: bash
+      run: |
+        mkdir dist
+        mv typescript-axios-client dist/src
+        cd dist
+        cp ${{ github.action_path }}/template/package.json ./package.json
+        cp ${{ github.action_path }}/template/README.md ./README.md
+        # TODO: publish to github package registry
+        # TODO: 패키징 해보고 쓸데없는 파일 안 들어갔는지 확인하기

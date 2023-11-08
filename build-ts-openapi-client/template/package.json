@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "name": "{{name}}",
+  "type": "module",
+  "version": "{{version}}",
+  "files": [
+    "src",
+    "README.md",
+    "package.json"
+  ],
+  "main": "./src/index.ts",
+  "peerDependencies": {
+    "axios": "^0.27.2"
+  }
+}
