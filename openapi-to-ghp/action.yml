@@ -16,6 +16,10 @@ inputs:
       - On "canary", "0.0.0-canary.<COMMIT HASH>" will be used as a package version, and "canary" distribution tag will be appended to built NPM package.
       - On "manual", "version" parameter of this action will be used as a package version.
       - Otherwise, this action will do nothing but fail.
+
+      Behavior on duplicated version:
+      - If "file" versioning policy is used, this action will not fail but silently skip build process even if specified version already does exist in the package registry.
+      - Otherwise, this action will explicitly fail if specified version already does exist in the package registry.
     default: file
   version:
     description: 'If "versioning" parameter is "manual", this field will be used as version of built NPM package. Otherwise, ignored. (ex: "1.2.0")'
@@ -68,27 +72,38 @@ runs:
 
     # Ensure that the package does already exist in the registry, and the
     # determined version does not already exist in the registry
-    - shell: bash
+    - id: check
+      shell: bash
       run: |
-        JSON='${{ runner.temp }}/manifest.json'
+        set -o pipefail
 
-        # Check if given package does exist in the registry first
-        if curl \
-          --fail \
-          --output "${JSON}" \
-          --header 'Authorization: Bearer ${{ inputs.github-token }}' \
-          '${{ inputs.registry-url }}/@${{ inputs.scope }}/${{ inputs.name }}'
-        then
-          # If it does, check if given version does not exist in the registry
-          if jq -e '.versions | keys | index("${{ steps.x.outputs.version }}")' "${JSON}"
-          then
-            echo 'Package "@${{ inputs.scope }}/${{ inputs.name }}@${{ steps.x.outputs.version }}" already exists in the package registry' >&2
-            exit 1
-          fi
+        # Make sure that given version of package of package itself does not
+        # already exist in the registry
+        if ! (
+          curl -fH 'Authorization: Bearer ${{ inputs.github-token }}' '${{ inputs.registry-url }}/@${{ inputs.scope }}/${{ inputs.name }}' |
+          jq -e '.versions | keys | index("${{ steps.x.outputs.version }}")'
+        ); then
+          echo 'result=do' >> "${GITHUB_OUTPUT}"
+          exit 0
         fi
 
+        # If given version of package does already exist, we cannot proceed
+        echo 'Package "@${{ inputs.scope }}/${{ inputs.name }}@${{ steps.x.outputs.version }}" already exists in the package registry'
+
+        # Skip silently if versioning policy is "file"
+        if [[ '${{ inputs.versioning }}' == 'file' ]]; then
+          echo 'Since current versioning policy is "file", this action will silently do nothing'
+          echo 'result=skip' >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        # Otherwise, fail
+        echo 'result=fail' >> "${GITHUB_OUTPUT}"
+        exit 1
+
     # Generate codes from OpenAPI
-    - uses: openapi-generators/openapitools-generator-action@v1
+    - if: steps.check.outputs.result == 'do'
+      uses: openapi-generators/openapitools-generator-action@v1
       with:
         openapi-file: ${{ inputs.input }}
         generator: ${{ inputs.generator-type }}
@@ -96,12 +111,14 @@ runs:
         command-args: ${{ inputs.generator-cli-args }}
 
     # Package and publish codes
-    - uses: actions/setup-node@v3
+    - if: steps.check.outputs.result == 'do'
+      uses: actions/setup-node@v3
       with:
         node-version: latest
         registry-url: ${{ inputs.registry-url }}
         scope: '@${{ inputs.scope }}'
-    - shell: bash
+    - if: steps.check.outputs.result == 'do'
+      shell: bash
       env:
         NODE_AUTH_TOKEN: ${{ inputs.github-token }}
       run: |
