@@ -76,7 +76,11 @@ runs:
           '${{ inputs.registry-url }}/@${{ inputs.scope }}/${{ inputs.name }}'
         then
           # If it does, check if given version does not exist in the registry
-          jq -e '.versions | keys | index("${{ steps.version.outputs.v }}") == null' "${JSON}"
+          if jq -e '.versions | keys | index("${{ steps.version.outputs.v }}")' "${JSON}"
+          then
+            echo 'Package "@${{ inputs.scope }}/${{ inputs.name }}@${{ steps.version.outputs.v }}" already exists in the package registry' >&2
+            exit 1
+          fi
         fi
 
     # Generate codes from OpenAPI
