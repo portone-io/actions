@@ -1,0 +1,152 @@
+name: OpenAPI to GitHub Packages
+
+inputs:
+  input:
+    description: 'Path of OpenAPI schema, YAML or JSON. (ex: "src/login_server.yaml", "auth_service.swagger.json")'
+    required: true
+  github-token:
+    description: 'Token to authorize GitHub Packages. Use "secrets.GITHUB_TOKEN".'
+    required: true
+  versioning:
+    description: |
+      Package versioning policy, must be one of "file", "canary", and "manual". (default: "file")
+
+      Version policy:
+      - On "file", content of current directory's "VERSION" file will be used as a package version.
+      - On "canary", "0.0.0-canary.<COMMIT HASH>" will be used as a package version, and "canary" distribution tag will be appended to built NPM package.
+      - On "manual", "version" parameter of this action will be used as a package version.
+      - Otherwise, this action will do nothing but fail.
+
+      Behavior on duplicated version:
+      - If "file" versioning policy is used, this action will not fail but silently skip build process even if specified version already does exist in the package registry.
+      - Otherwise, this action will explicitly fail if specified version already does exist in the package registry.
+    default: file
+  version:
+    description: 'If "versioning" parameter is "manual", this field will be used as version of built NPM package. Otherwise, ignored. (ex: "1.2.0")'
+  name:
+    description: 'Name of built NPM package. (ex: "mypackage", default: Name of repository)'
+    default: ${{ github.event.repository.name }}
+  scope:
+    description: 'Scope of built NPM package. (ex: "myorg", default: GitHub username of repository owner)'
+    default: ${{ github.repository_owner }}
+  registry-url:
+    description: 'URL of NPM registry to upload. (default: "https://npm.pkg.github.com")'
+    default: https://npm.pkg.github.com
+  openapi-generator-version:
+    description: 'The Docker tag of the openapitools/openapi-generator-cli image to use. See https://hub.docker.com/r/openapitools/openapi-generator-cli/tags for available tags. (ex: "latest", "v7.1.0", default: "v6.2.1")'
+    default: v6.2.1
+  generator-type:
+    description: 'The generator you wish to use. See https://openapi-generator.tech/docs/generators/ for available generators. (ex: "javascript", "typescript-fetch", default: "typescript-axios")'
+    default: typescript-axios
+  generator-cli-args:
+    description: 'Additional arguments to pass through to the generate command. (default: "--additional-properties paramNaming=original,supportsES6=true")'
+    default: --additional-properties paramNaming=original,supportsES6=true
+
+runs:
+  using: composite
+  steps:
+    # Determine package version using the given versioning policy
+    - id: x
+      shell: bash
+      run: |
+        case '${{ inputs.versioning }}' in
+          file)
+            echo "version=$(cat VERSION)" >> "${GITHUB_OUTPUT}"
+            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            ;;
+
+          canary)
+            echo 'version=0.0.0-canary.${{ github.sha }}' >> "${GITHUB_OUTPUT}"
+            echo 'publish-args=--tag canary' >> "${GITHUB_OUTPUT}"
+            ;;
+
+          manual)
+            echo 'version=${{ inputs.version }}' >> "${GITHUB_OUTPUT}"
+            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            ;;
+
+          *)
+            exit 1
+            ;;
+        esac
+
+    # Ensure that the package does already exist in the registry, and the
+    # determined version does not already exist in the registry
+    - id: check
+      shell: bash
+      run: |
+        set -o pipefail
+
+        # Make sure that given version of package of package itself does not
+        # already exist in the registry
+        if ! (
+          curl -fH 'Authorization: Bearer ${{ inputs.github-token }}' '${{ inputs.registry-url }}/@${{ inputs.scope }}/${{ inputs.name }}' |
+          jq -e '.versions | keys | index("${{ steps.x.outputs.version }}")'
+        ); then
+          echo 'result=do' >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        # If given version of package does already exist, we cannot proceed
+        echo 'Package "@${{ inputs.scope }}/${{ inputs.name }}@${{ steps.x.outputs.version }}" already exists in the package registry'
+
+        # Skip silently if versioning policy is "file"
+        if [[ '${{ inputs.versioning }}' == 'file' ]]; then
+          echo 'Since current versioning policy is "file", this action will silently do nothing'
+          echo 'result=skip' >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        # Otherwise, fail
+        echo 'result=fail' >> "${GITHUB_OUTPUT}"
+        exit 1
+
+    # Generate codes from OpenAPI
+    - if: steps.check.outputs.result == 'do'
+      uses: openapi-generators/openapitools-generator-action@v1
+      with:
+        openapi-file: ${{ inputs.input }}
+        generator: ${{ inputs.generator-type }}
+        generator-tag: ${{ inputs.openapi-generator-version }}
+        command-args: ${{ inputs.generator-cli-args }}
+
+    # Package and publish codes
+    - if: steps.check.outputs.result == 'do'
+      uses: actions/setup-node@v3
+      with:
+        node-version: latest
+        registry-url: ${{ inputs.registry-url }}
+        scope: '@${{ inputs.scope }}'
+    - if: steps.check.outputs.result == 'do'
+      shell: bash
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        mv '${{ inputs.generator-type }}-client' '${{ runner.temp }}/src'
+
+        cd '${{ runner.temp }}'
+
+        cat <<'EOF' > package.json
+        {
+          "name": "@${{ inputs.scope }}/${{ inputs.name }}",
+          "repository": {
+            "type": "git",
+            "url": "git+https://github.com/${{ github.repository }}.git"
+          },
+          "type": "module",
+          "version": "${{ steps.x.outputs.version }}",
+          "main": "./src/index.ts",
+          "publishConfig": {
+            "access": "restricted",
+            "registry": "${{ inputs.registry-url}}"
+          },
+          "files": [
+            "src/**.ts"
+          ],
+          "peerDependencies": {
+            "axios": "^0.27.2"
+          }
+        }
+        EOF
+
+        npm publish ${{ steps.x.outputs.publish-args }}
