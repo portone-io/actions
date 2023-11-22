@@ -127,6 +127,20 @@ runs:
       run: |
         mv '${{ inputs.generator-type }}-client' '${{ runner.temp }}/src'
 
+        additional_files='${{ inputs.additional-files }}'
+
+        if [ -z "$additional_files" ]; then
+          files='["src/**.ts"]'
+        else
+          srcs=$(echo "$additional_files" | yq 'keys | .[]')
+          for src in $srcs; do
+            dst=$(echo "$additional_files" | yq ".\"$src\"")
+            mkdir -p $(dirname "${{ runner.temp }}/$dst")
+            cp "$src" "${{ runner.temp }}/$dst"
+          done
+          files=$(echo "$additional_files" | yq 'to_entries | ["src/**.ts"] + map(.value)' -o=j)
+        fi
+
         cd '${{ runner.temp }}'
 
         cat <<'EOF' > package.json
@@ -143,9 +157,7 @@ runs:
             "access": "restricted",
             "registry": "${{ inputs.registry-url}}"
           },
-          "files": [
-            "src/**.ts"
-          ],
+          "files": $files,
           "peerDependencies": {
             "axios": "^0.27.2"
           }
