@@ -136,9 +136,8 @@ runs:
           SRC=$(jq -r '.key' <<< "${ENTRY}")
           DST=$(jq -r '.value' <<< "${ENTRY}")
 
-          TARGETDIR=$(dirname "${{ runner.temp }}/${DST}")
-          mkdir -p "${TARGETDIR}"
-          cp "${SRC}" "${TARGETDIR}"
+          mkdir -p "$(dirname "${{ runner.temp }}/${DST}")"
+          cp "${SRC}" "${{ runner.temp }}/${DST}"
         done
 
         FILES=$(yq -r 'to_entries | ["src/**.ts"] + map(.value) | @json' <<'EOF'
