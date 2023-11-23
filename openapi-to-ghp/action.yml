@@ -41,6 +41,9 @@ inputs:
   generator-cli-args:
     description: 'Additional arguments to pass through to the generate command. (default: "--additional-properties paramNaming=original,supportsES6=true")'
     default: --additional-properties paramNaming=original,supportsES6=true
+  additional-files:
+    description: 'The additional file list to include in the NPM package. Write a YAML object as a string, with file paths in the working directory as keys and the paths to be included in the package as values. (ex: "{ src-path1: dst-path1, src-path2: dst-path2 }", default: "{}")'
+    default: '{}'
 
 runs:
   using: composite
@@ -124,9 +127,28 @@ runs:
       run: |
         mv '${{ inputs.generator-type }}-client' '${{ runner.temp }}/src'
 
+        readarray -d '' ENTRIES < <(yq -0 'to_entries | .[] | @json' <<'EOF'
+        ${{ inputs.additional-files }}
+        EOF
+        )
+
+        for ENTRY in "${ENTRIES[@]}"; do
+          SRC=$(jq -r '.key' <<< "${ENTRY}")
+          DST=$(jq -r '.value' <<< "${ENTRY}")
+
+          TARGETDIR=$(dirname "${{ runner.temp }}/${DST}")
+          mkdir -p "${TARGETDIR}"
+          cp "${SRC}" "${TARGETDIR}"
+        done
+
+        FILES=$(yq -r 'to_entries | ["src/**.ts"] + map(.value) | @json' <<'EOF'
+        ${{ inputs.additional-files }}
+        EOF
+        )
+
         cd '${{ runner.temp }}'
 
-        cat <<'EOF' > package.json
+        cat <<EOF > package.json
         {
           "name": "@${{ inputs.scope }}/${{ inputs.name }}",
           "repository": {
@@ -140,9 +162,7 @@ runs:
             "access": "restricted",
             "registry": "${{ inputs.registry-url}}"
           },
-          "files": [
-            "src/**.ts"
-          ],
+          "files": ${FILES},
           "peerDependencies": {
             "axios": "^0.27.2"
           }
