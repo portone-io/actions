@@ -134,4 +134,27 @@ jobs:
     additional-files: |
       src-path1: dst-path1
       src-path2: dst-path2
+
+    # JSON object to override the default package.json generated during the
+    # package build process.
+    # (ex: '{"scripts":{"start":"node index.js"}}', default: "{}")
+    #
+    # This feature is useful for customizing various aspects of the npm package,
+    # such as adding additional metadata, scripts, dependencies, or any other
+    # fields supported by package.json.
+    #
+    # The JSON object should be formatted as a string. For example, to add
+    # custom scripts and dependencies, format it as: '{"scripts":{"start":"node
+    # index.js"}}'. This string will be merged with the default package.json,
+    # allowing for extensive customization of the package.
+    #
+    # If left empty (default behavior), the action will proceed with the default
+    # package.json configuration without any custom overrides.
+    override-packagejson: |
+      {
+        "exports": {
+          ".": "src/index.ts",
+          "./schema.graphql": "schema.graphql"
+        }
+      }
 ```
