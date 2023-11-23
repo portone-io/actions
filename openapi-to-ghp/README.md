@@ -153,8 +153,8 @@ jobs:
     override-packagejson: |
       {
         "exports": {
-          ".": "src/index.ts",
-          "./schema.graphql": "schema.graphql"
+          ".": "./src/index.ts",
+          "./schema.graphql": "./schema.graphql"
         }
       }
 ```
