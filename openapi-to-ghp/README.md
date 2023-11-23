@@ -73,12 +73,16 @@ jobs:
     # Token to authorize GitHub Packages. Use "secrets.GITHUB_TOKEN".
     github-token: ${{ secrets.GITHUB_TOKEN }}
 
-    # Package versioning policy, must be one of "file", "canary", and "manual".
+    # Package versioning policy, must be one of "file", "tag", "canary", and
+    # "manual".
     # (default: "file")
     #
     # Version policy:
     # - On "file", content of current directory's "VERSION" file will be used as
     #   a package version.
+    # - On "tag", current workflow's git tag minus the leading v is used as a
+    #   package version. If current workflow is not git tag push or tag name
+    #   does not start with "v", this action will do nothing but fail.
     # - On "canary", "0.0.0-canary.<COMMIT HASH>" will be used as a package
     #   version, and "canary" distribution tag will be appended to built NPM
     #   package.
