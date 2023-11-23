@@ -126,7 +126,7 @@ jobs:
     # The additional file list to include in the NPM package.
     # Write a YAML object as a string,
     # with file paths in the working directory as keys and the paths to be included in the package as values.
-    # (ex: "{ src-path1: dst-path1, src-path2: dst-path2 }", default: "")
+    # (ex: "{ src-path1: dst-path1, src-path2: dst-path2 }", default: "{}")
     additional-files: |
       src-path1: dst-path1
       src-path2: dst-path2

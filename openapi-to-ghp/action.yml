@@ -42,8 +42,8 @@ inputs:
     description: 'Additional arguments to pass through to the generate command. (default: "--additional-properties paramNaming=original,supportsES6=true")'
     default: --additional-properties paramNaming=original,supportsES6=true
   additional-files:
-    description: 'The additional file list to include in the NPM package. Write a YAML object as a string, with file paths in the working directory as keys and the paths to be included in the package as values. (ex: "{ src-path1: dst-path1, src-path2: dst-path2 }", default: "")'
-    default: ''
+    description: 'The additional file list to include in the NPM package. Write a YAML object as a string, with file paths in the working directory as keys and the paths to be included in the package as values. (ex: "{ src-path1: dst-path1, src-path2: dst-path2 }", default: "{}")'
+    default: '{}'
 
 runs:
   using: composite
@@ -127,23 +127,26 @@ runs:
       run: |
         mv '${{ inputs.generator-type }}-client' '${{ runner.temp }}/src'
 
-        additional_files='${{ inputs.additional-files }}'
+        readarray -d '' ENTRIES < <(yq -0 'to_entries | .[] | @json' <<'EOF'
+        ${{ inputs.additional-files }}
+        EOF
+        )
 
-        if [ -z "$additional_files" ]; then
-          files='["src/**.ts"]'
-        else
-          srcs=$(echo "$additional_files" | yq 'keys | .[]')
-          for src in $srcs; do
-            dst=$(echo "$additional_files" | yq ".\"$src\"")
-            mkdir -p $(dirname "${{ runner.temp }}/$dst")
-            cp "$src" "${{ runner.temp }}/$dst"
-          done
-          files=$(echo "$additional_files" | yq 'to_entries | ["src/**.ts"] + map(.value)' -o=j)
-        fi
+        for ENTRY in "${ENTRIES[@]}"; do
+          SRC=$(jq -r '.key' <<< "${ENTRY}")
+          DST=$(jq -r '.value' <<< "${ENTRY}")
 
-        cd '${{ runner.temp }}'
+          TARGETDIR=$(dirname "${{ runner.temp }}/${DST}")
+          mkdir -p "${TARGETDIR}"
+          cp "${SRC}" "${TARGETDIR}"
+        done
 
-        cat <<EOF > package.json
+        FILES=$(yq -r 'to_entries | ["src/**.ts"] + map(.value) | @json' <<'EOF'
+        ${{ inputs.additional-files }}
+        EOF
+        )
+
+        cat <<EOF > '${{ runner.temp }}/package.json'
         {
           "name": "@${{ inputs.scope }}/${{ inputs.name }}",
           "repository": {
@@ -157,7 +160,7 @@ runs:
             "access": "restricted",
             "registry": "${{ inputs.registry-url}}"
           },
-          "files": $files,
+          "files": ${FILES},
           "peerDependencies": {
             "axios": "^0.27.2"
           }
