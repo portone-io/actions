@@ -38,7 +38,6 @@ jobs:
       - uses: portone-io/actions/openapi-to-ghp@build-ts-openapi-client
         with:
           input: rest/merchant_server.yaml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **Push on every push:**
@@ -57,7 +56,6 @@ jobs:
       - uses: portone-io/actions/openapi-to-ghp@build-ts-openapi-client
         with:
           input: rest/merchant_server.yaml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **Detailed:**
@@ -69,9 +67,6 @@ jobs:
     # Path of OpenAPI schema, YAML or JSON.
     # (ex: "src/login_server.yaml", "auth_service.swagger.json")
     input: foo/bar/openapi.yaml
-
-    # Token to authorize GitHub Packages. Use "secrets.GITHUB_TOKEN".
-    github-token: ${{ secrets.GITHUB_TOKEN }}
 
     # Package versioning policy, must be one of "file", "tag", "canary", and
     # "manual".

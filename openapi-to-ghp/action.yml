@@ -4,9 +4,6 @@ inputs:
   input:
     description: 'Path of OpenAPI schema, YAML or JSON. (ex: "src/login_server.yaml", "auth_service.swagger.json")'
     required: true
-  github-token:
-    description: 'Token to authorize GitHub Packages. Use "secrets.GITHUB_TOKEN".'
-    required: true
   versioning:
     description: |
       Package versioning policy, must be one of "file", "tag", "canary", and "manual". (default: "file")
@@ -55,6 +52,9 @@ inputs:
 
       If left empty (default behavior), the action will proceed with the default package.json configuration without any custom overrides.
     default: '{}'
+  # Obsoleted arguments
+  github-token:
+    description: 'Obsoleted arguments. Does nothing and will be ignored.'
 
 runs:
   using: composite
@@ -102,7 +102,7 @@ runs:
         # Make sure that given version of package of package itself does not
         # already exist in the registry
         if ! (
-          curl -fH 'Authorization: Bearer ${{ inputs.github-token }}' '${{ inputs.registry-url }}/@${{ inputs.scope }}/${{ inputs.name }}' |
+          curl -fH 'Authorization: Bearer ${{ github.token }}' '${{ inputs.registry-url }}/@${{ inputs.scope }}/${{ inputs.name }}' |
           jq -e '.versions | keys | index("${{ steps.x.outputs.version }}")'
         ); then
           echo 'result=do' >> "${GITHUB_OUTPUT}"
@@ -142,7 +142,7 @@ runs:
     - if: steps.check.outputs.result == 'do'
       shell: bash
       env:
-        NODE_AUTH_TOKEN: ${{ inputs.github-token }}
+        NODE_AUTH_TOKEN: ${{ github.token }}
       run: |
         mv '${{ inputs.generator-type }}-client' '${{ runner.temp }}/src'
 
