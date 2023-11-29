@@ -72,6 +72,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: portone-io/actions/openapi-to-ghp@main
         with:
+          versioning: canary
           input: rest/merchant_server.yaml
 ```
 
