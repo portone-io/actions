@@ -15,17 +15,14 @@ For more details, please check the [`action.yml`] file.
 [GitHub Package Registry]: https://github.com/features/packages
 [`action.yml`]: ./action.yml
 
-Usage
+Usages
 --------
-
-**Push on change of `VERSION` file:**
-
+On change of `VERSION` file:
 ```yaml
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   openapi-to-ghp:
@@ -35,15 +32,17 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      - uses: portone-io/actions/openapi-to-ghp@build-ts-openapi-client
+      - uses: portone-io/actions/openapi-to-ghp@main
         with:
           input: rest/merchant_server.yaml
 ```
 
-**Push on every push:**
-
+On git tag:
 ```yaml
-on: [push, workflow_dispatch]
+on:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   openapi-to-ghp:
@@ -53,13 +52,61 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      - uses: portone-io/actions/openapi-to-ghp@build-ts-openapi-client
+      - uses: portone-io/actions/openapi-to-ghp@main
+        with:
+          input: schema/openapi.yml
+          versioning: tag
+```
+
+On every push (canary build):
+```yaml
+on: push
+
+jobs:
+  openapi-to-ghp:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: portone-io/actions/openapi-to-ghp@main
         with:
           input: rest/merchant_server.yaml
 ```
 
-**Detailed:**
+Override package.json and include extra files to the build result:
+```yaml
+on:
+  push:
+    tags:
+      - 'v*'
 
+jobs:
+  openapi-to-ghp:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: portone-io/actions/openapi-to-ghp@main
+        with:
+          input: schema/openapi.yml
+          versioning: tag
+          additional-files: |
+            schema/schema.graphql: schema.graphql
+          override-packagejson: |
+            {
+              "exports": {
+                ".": "./src/index.ts",
+                "./schema.graphql": "./schema.graphql"
+              }
+            }
+```
+
+References
+--------
 ```yaml
 - uses: actions/checkout@v4
 - uses: portone-io/actions/openapi-to-ghp@main
