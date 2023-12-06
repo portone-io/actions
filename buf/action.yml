@@ -4,6 +4,9 @@ inputs:
   github-token:
     description: 'GitHub token to use for publishing the package. Use "secrets.GITHUB_TOKEN"'
     required: true
+  target-directory:
+    description: 'The target directory for runing buf lint'
+    default: protobuf
   language:
     description: 'The target language for generation'
     default: go #우선은 go를 기본값으로 설정
@@ -16,24 +19,14 @@ runs:
       with:
         version: "1.28.1"
 
-    # check installation Buf CLI completed successfully and Buf version
+    # Check installation Buf CLI completed successfully and Buf version
     - name: Check Buf version
       shell: bash
       run: buf --version
 
-#    # Copy Buf configuration files to the working directory
-#    - name: Copy buf configuration file
-#      shell: bash
-#      run: |
-#        cp ${{ github.workspace }}/protobuf/buf.yaml ${GITHUB_ACTION_PATH}
-
-    # execute Buf lint
-    - name: Execute buf lint
+    # Run Buf lint
+    - name: Run buf lint
       shell: bash
-      run:  buf lint
-
-
-
-
-
-
+      run:  |
+        cd ${{ inputs.target-directory }}
+        buf lint
