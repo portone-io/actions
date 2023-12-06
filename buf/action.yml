@@ -1,0 +1,24 @@
+name: Buf
+
+inputs:
+  input-directory:
+    description: 'Directory where the `*.proto` files reside. (default: "./protobuf")'
+    default: './protobuf'
+  buf-version:
+    description: 'The version of the buf cli to use. (ex: "latest", "1.28.0", default: "1.28.1")'
+    default: 1.28.1
+
+runs:
+  using: composite
+  steps:
+    - uses: bufbuild/buf-setup-action@v1
+      with:
+        version: 1.28.1
+
+    # Run Buf lint
+    - shell: bash
+      run:  |
+        cd '${{ inputs.input-directory }}'
+        buf lint
+        # TODO: buf break
+        # TODO: buf generate
