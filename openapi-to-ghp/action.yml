@@ -52,9 +52,6 @@ inputs:
 
       If left empty (default behavior), the action will proceed with the default package.json configuration without any custom overrides.
     default: '{}'
-  # Obsoleted arguments
-  github-token:
-    description: 'Obsoleted arguments. Does nothing and will be ignored.'
 
 runs:
   using: composite
