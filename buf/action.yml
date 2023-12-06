@@ -1,32 +1,24 @@
-name: 'Buf action'
+name: Buf
 
 inputs:
-  github-token:
-    description: 'GitHub token to use for publishing the package. Use "secrets.GITHUB_TOKEN"'
-    required: true
-  target-directory:
-    description: 'The target directory for runing buf lint'
-    default: protobuf
-  language:
-    description: 'The target language for generation'
-    default: go #우선은 go를 기본값으로 설정
+  input-directory:
+    description: 'Directory where the `*.proto` files reside. (default: "./protobuf")'
+    default: './protobuf'
+  buf-version:
+    description: 'The version of the buf cli to use. (ex: "latest", "1.28.0", default: "1.28.1")'
+    default: 1.28.1
 
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Install Buf CLI
-      uses: bufbuild/buf-setup-action@v1
+    - uses: bufbuild/buf-setup-action@v1
       with:
-        version: "1.28.1"
-
-    # Check installation Buf CLI completed successfully and Buf version
-    - name: Check Buf version
-      shell: bash
-      run: buf --version
+        version: 1.28.1
 
     # Run Buf lint
-    - name: Run buf lint
-      shell: bash
+    - shell: bash
       run:  |
-        cd ${{ inputs.target-directory }}
+        cd '${{ inputs.input-directory }}'
         buf lint
+        # TODO: buf break
+        # TODO: buf generate
