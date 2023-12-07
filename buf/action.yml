@@ -15,10 +15,13 @@ runs:
       with:
         version: 1.28.1
 
-    # Run Buf lint
     - shell: bash
       run:  |
         cd '${{ inputs.input-directory }}'
+        # Run Buf lint
         buf lint
-        # TODO: buf break
-        # TODO: buf generate
+        
+        # Run Buf breaking
+        # Compare with ${{ inputs.input-directory }}/*.proto on the origin/main branch
+        git fetch origin
+        buf breaking --against '../.git#branch=origin/main,subdir=${{ inputs.input-directory }}'
