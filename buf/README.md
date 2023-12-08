@@ -1,14 +1,5 @@
 buf
 ========
-
-> [!NOTE]
-> `portone-io/actions/buf` is still in active development.
->
-> ##### Roadmap
-> - [x] `buf lint`
-> - [x] `buf break --against ...`
-> - [ ] `buf generate`
-
 This GitHub action reads the gRPC schema file in the repository and uses the
 [buf] to lint it.
 

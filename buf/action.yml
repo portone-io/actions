@@ -16,12 +16,17 @@ runs:
         version: 1.28.1
 
     - shell: bash
-      run:  |
-        cd '${{ inputs.input-directory }}'
-        # Run Buf lint
+      working-directory: ${{ inputs.input-directory }}
+      run: |
+        # Lint .proto codes
         buf lint
-        
-        # Run Buf breaking
-        # Compare with ${{ inputs.input-directory }}/*.proto on the origin/main branch
-        git fetch origin
+
+        # Check if `buf generate` works properly
+        buf generate --template '${{ github.action_path }}/buf.gen.yaml'
+        (cd ../generated && ls)
+
+        # Check if there's any breaking changes. It checks backword
+        # compatibility of '${{ inputs.input-directory }}/*.proto' againt
+        # origin/main branch
+        git fetch --depth=1 origin main
         buf breaking --against '../.git#branch=origin/main,subdir=${{ inputs.input-directory }}'
