@@ -1,14 +1,5 @@
 buf
 ========
-
-> [!NOTE]
-> `portone-io/actions/buf` is still in active development.
->
-> ##### Roadmap
-> - [x] `buf lint`
-> - [ ] `buf break --against ...`
-> - [ ] `buf generate`
-
 This GitHub action reads the gRPC schema file in the repository and uses the
 [buf] to lint it.
 
@@ -35,7 +26,7 @@ References
 --------
 ```yaml
 - uses: actions/checkout@v4
-- uses: portone-io/actions/openapi-to-ghp@main
+- uses: portone-io/actions/buf@main
   with:
     # Directory where the `*.proto` files reside.
     # (default: "./protobuf")
