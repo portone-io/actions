@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+from sys import argv
+from re import fullmatch, X
+
+def show_help_then_fail():
+    print(f'''\
+Usage: {argv[0]} <repository>
+
+Sample:
+  {argv[0]} portone-io/merchant-service-interface   #=> merchant
+  {argv[0]} portone-io/platform-service             #=> platform
+  {argv[0]} portone-io/corewebhook-interface        #=> corewebhook\
+''')
+    exit(1)
+
+# Fail if no argument is given
+if len(argv) != 2:
+    show_help_then_fail()
+
+# The owner name (username + org name) may only contain: alphanumeric characters
+# or single hyphens, and cannot begin or end with a hyphen.
+#
+# The repository name can only contain ASCII letters, digits, and the characters
+# ., -, and _.
+result = fullmatch(r'''
+^
+    (?:[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]) # owner name
+    /
+    (?P<slug>[a-zA-Z0-9._-]+?)-(?:service|interface|service-interface)? # repository name
+$
+''', argv[1], X)
+
+# Fail if the argument is not a valid GitHub repository name
+if result is None:
+    show_help_then_fail()
+
+print(result.group('slug'))
