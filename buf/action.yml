@@ -22,8 +22,8 @@ runs:
         buf lint
 
         # Check if `buf generate` works properly
-        buf generate --template '${{ github.action_path }}/buf.gen.yaml'
-        (cd ../generated && find . -type f)
+        buf generate --template "$(./generate-template '${{ runner.temp }}' '${{ github.repository }}')"
+        (cd '${{ runner.temp }}' && find . -type f)
 
         # Check if there's any breaking changes. It checks backword
         # compatibility of '${{ inputs.input-directory }}/*.proto' againt
