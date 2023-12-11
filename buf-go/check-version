@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+from sys import argv, stdin, stderr
+from re import fullmatch
+
+def show_help_then_fail():
+    print(f'''\
+Parse git-ls-remote(1) output to determine the current latest tag for a given
+slug, then check if given tag from github.ref is newer than the latest tag. It
+fails if given github.ref is not a tag or if it is older than the latest tag.
+
+Usage: {argv[0]} <slug> <github.ref>
+
+Sample:
+  git ls-remote --tags --refs origin | {argv[0]} merchant refs/tags/v1.2.3\
+''', file=stderr)
+    exit(1)
+
+def sem(ver: tuple[int, int, int]) -> str:
+    return f'{ver[0]}.{ver[1]}.{ver[2]}'
+
+if len(argv) != 3:
+    show_help_then_fail()
+
+_, slug, ref = argv
+result = fullmatch(r'^refs/tags/v(\d+)\.(\d+)\.(\d+)$', ref) or show_help_then_fail()
+newversion = tuple(map(int, result.groups()))
+
+latest = max(
+    (
+        tuple(map(int, match.groups())) for line in stdin
+        if (match := fullmatch(rf'^[0-9a-f]{{40}}\trefs/tags/interface/{slug}/v(\d+)\.(\d+)\.(\d+)$\n', line))
+    ),
+    default=None
+)
+
+if latest is None:
+    print(f'No previous tags found for {slug} in origin. Assuming {sem(newversion)} is the new release.', file=stderr)
+    print(sem(newversion))
+    exit()
+if latest < newversion:
+    print(f'Given version {sem(newversion)} is newer than latest {sem(latest)} for {slug}, continuing.', file=stderr)
+    print(sem(newversion))
+    exit()
+
+print(f'Given version {sem(newversion)} is not newer than latest {sem(latest)} for {slug}, aborting.', file=stderr)
+exit(1)

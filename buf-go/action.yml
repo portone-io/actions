@@ -1,0 +1,74 @@
+name: Buf go build
+
+inputs:
+  input-directory:
+    description: 'Directory where the `*.proto` files reside. (default: "./protobuf")'
+    default: './protobuf'
+  buf-version:
+    description: 'The version of the buf cli to use. (ex: "latest", "1.28.0", default: "1.28.1")'
+    default: 1.28.1
+  deploy-key:
+    description: 'Deploy key (OpenSSH private key) which have write permission to portone-io/go repository'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+
+    - uses: actions/checkout@v4
+      with:
+        repository: portone-io/go
+        path: __go__
+        ssh-key: ${{ inputs.deploy-key }}
+
+    - uses: bufbuild/buf-setup-action@v1
+      with:
+        version: ${{ inputs.buf-version }}
+
+    - shell: bash
+      working-directory: ${{ inputs.input-directory }}
+      run: |
+        # Run `buf generate`
+        SLUG=$('${{ github.action_path }}/repository-to-slug' '${{ github.repository }}')
+        buf generate --template "$('${{ github.action_path }}/generate-template' '${{ runner.temp }}/buf' "${SLUG}")"
+        # Build result will be stored at: '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}"
+
+        # Go to portone-io/go repository
+        cd '${{ github.workspace }}/__go__'
+        mkdir -p interface
+
+        # Replace previous build result with new one
+        rm -rf "interface/${SLUG}"
+        mv '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}" ./interface/
+        (
+          cd "./interface/${SLUG}"
+          go mod init "github.com/portone-io/go/interface/${SLUG}"
+          go work use .
+          go mod tidy
+          go build ./...
+        )
+
+        # Early-return if there's nothing to commit
+        git add -A
+        if git diff --quiet --staged --exit-code; then
+          echo "No changes to commit"
+          exit
+        fi
+
+        # Parse git-ls-remote(1) output to determine the current latest tag for
+        # a given slug, then check if given tag from github.ref is newer than
+        # the latest tag. It fails if given github.ref is not a tag or if it is
+        # older than the latest tag.
+        VERSION=$(
+          git ls-remote --tags --refs origin |
+          '${{ github.action_path }}/check-version' "${SLUG}" '${{ github.ref }}'
+        )
+
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git commit -m "interface/${SLUG}: ${VERSION}"
+        git tag "interface/${SLUG}/v${VERSION}"
+        git push --atomic origin main "interface/${SLUG}/v${VERSION}"
