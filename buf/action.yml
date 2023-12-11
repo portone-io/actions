@@ -23,7 +23,7 @@ runs:
 
         # Check if `buf generate` works properly
         buf generate --template '${{ github.action_path }}/buf.gen.yaml'
-        (cd ../generated && ls)
+        (cd ../generated && find . -type f)
 
         # Check if there's any breaking changes. It checks backword
         # compatibility of '${{ inputs.input-directory }}/*.proto' againt
