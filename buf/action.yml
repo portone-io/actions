@@ -29,4 +29,4 @@ runs:
         # compatibility of '${{ inputs.input-directory }}/*.proto' againt
         # origin/main branch
         git fetch --depth=1 origin main
-        buf breaking --against '../.git#branch=origin/main,subdir=${{ inputs.input-directory }}'
+        buf breaking --against '${{ github.workspace }}/.git#branch=origin/main,subdir=${{ inputs.input-directory }}'
