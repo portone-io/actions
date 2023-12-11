@@ -1,7 +1,7 @@
 buf
 ========
 This GitHub action reads the gRPC schema file in the repository and uses the
-[buf] to lint it.
+[buf] to lint and statically analyze the codes.
 
 For more details, please check the [`action.yml`] file.
 
