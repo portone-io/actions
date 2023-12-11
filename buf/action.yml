@@ -13,7 +13,7 @@ runs:
   steps:
     - uses: bufbuild/buf-setup-action@v1
       with:
-        version: 1.28.1
+        version: ${{ inputs.buf-version }}
 
     - shell: bash
       working-directory: ${{ inputs.input-directory }}
