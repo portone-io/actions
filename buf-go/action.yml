@@ -35,6 +35,10 @@ runs:
         SLUG=$('${{ github.action_path }}/repository-to-slug' '${{ github.repository }}')
         buf generate --template "$('${{ github.action_path }}/generate-template' '${{ runner.temp }}/buf' "${SLUG}")"
         # Build result will be stored at: '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}"
+        (
+          cd '${{ runner.temp }}/buf'
+          find . -type f
+        )
 
         # Go to portone-io/go repository
         cd '${{ github.workspace }}/__go__'
