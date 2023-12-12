@@ -134,9 +134,9 @@ References
     # - Otherwise, this action will do nothing but fail.
     #
     # Behavior on duplicated version:
-    # - If "file" versioning policy is used, this action will not fail but
-    #   silently skip build process even if specified version already does exist
-    #   in the package registry.
+    # - If "file" or "canary" versioning policy is used, this action will not
+    #   fail but silently skip build process even if specified version already
+    #   does exist in the package registry.
     # - Otherwise, this action will explicitly fail if specified version already
     #   does exist in the package registry.
     versioning: manual

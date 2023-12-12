@@ -16,7 +16,7 @@ inputs:
       - Otherwise, this action will do nothing but fail.
 
       Behavior on duplicated version:
-      - If "file" versioning policy is used, this action will not fail but silently skip build process even if specified version already does exist in the package registry.
+      - If "file" or "canary" versioning policy is used, this action will not fail but silently skip build process even if specified version already does exist in the package registry.
       - Otherwise, this action will explicitly fail if specified version already does exist in the package registry.
     default: file
   version:
@@ -109,9 +109,9 @@ runs:
         # If given version of package does already exist, we cannot proceed
         echo 'Package "@${{ inputs.scope }}/${{ inputs.name }}@${{ steps.x.outputs.version }}" already exists in the package registry'
 
-        # Skip silently if versioning policy is "file"
-        if [[ '${{ inputs.versioning }}' == 'file' ]]; then
-          echo 'Since current versioning policy is "file", this action will silently do nothing'
+        # Skip silently if versioning policy is "file" or "canary"
+        if [[ '${{ inputs.versioning }}' == 'file' || '${{ inputs.versioning }}' == 'canary' ]]; then
+          echo 'Since current versioning policy is "${{ inputs.versioning }}", this action will silently do nothing'
           echo 'result=skip' >> "${GITHUB_OUTPUT}"
           exit 0
         fi
