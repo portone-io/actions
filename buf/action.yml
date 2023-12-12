@@ -11,6 +11,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+
     - uses: bufbuild/buf-setup-action@v1
       with:
         version: ${{ inputs.buf-version }}
@@ -21,13 +25,24 @@ runs:
         # Lint .proto codes
         buf lint
 
-        # Check if `buf generate` works properly
-        SLUG=$('${{ github.action_path }}/repository-to-slug' '${{ github.repository }}')
-        buf generate --template "$('${{ github.action_path }}/generate-template' '${{ runner.temp }}/buf' "${SLUG}")"
-        (cd '${{ runner.temp }}/buf' && find . -type f)
-
         # Check if there's any breaking changes. It checks backword
         # compatibility of '${{ inputs.input-directory }}/*.proto' againt
         # origin/main branch
         git fetch --depth=1 origin main
         buf breaking --against '${{ github.workspace }}/.git#branch=origin/main,subdir=${{ inputs.input-directory }}'
+
+        # Run `buf generate`
+        SLUG=$('${{ github.action_path }}/repository-to-slug' '${{ github.repository }}')
+        buf generate --template "$('${{ github.action_path }}/generate-template' '${{ runner.temp }}/buf' "${SLUG}")"
+        # Build result will be stored at: '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}"
+        (
+          cd '${{ runner.temp }}/buf'
+          find . -type f
+        )
+
+        (
+          cd '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}"
+          go mod init "github.com/portone-io/go/interface/${SLUG}"
+          go mod tidy
+          go build ./...
+        )
