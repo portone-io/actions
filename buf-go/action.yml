@@ -31,6 +31,8 @@ runs:
     - shell: bash
       working-directory: ${{ inputs.input-directory }}
       run: |
+        set -x
+
         # Run `buf generate`
         SLUG=$('${{ github.action_path }}/repository-to-slug' '${{ github.repository }}')
         buf generate --template "$('${{ github.action_path }}/generate-template' '${{ runner.temp }}/buf' "${SLUG}")"
