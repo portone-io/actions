@@ -29,8 +29,17 @@ runs:
         version: ${{ inputs.buf-version }}
 
     - shell: bash
+      env:
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       working-directory: ${{ inputs.input-directory }}
       run: |
+        # Add SSH Go Module Private Key
+        mkdir -p ~/.ssh
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        ssh-agent -a $SSH_AUTH_SOCK > /dev/null	
+        ssh-add - <<< "${{ inputs.deploy-key }}"
+        echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
+        
         set -x
 
         # Run `buf generate`
@@ -54,7 +63,7 @@ runs:
           go mod init "github.com/portone-io/go/interface/${SLUG}"
           go work use .
           go mod tidy
-          git config --global 'url.https://${{ github.actor }}:${{ github.token }}@github.com/.insteadOf' https://github.com/
+          git config --global url."ssh://git@github.com/".insteadOf https://github.com/
           go env -w GOPRIVATE='github.com/portone-io/*'
           go build ./...
         )
