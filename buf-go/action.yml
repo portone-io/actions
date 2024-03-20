@@ -28,18 +28,13 @@ runs:
       with:
         version: ${{ inputs.buf-version }}
 
+    - uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ inputs.deploy-key }}
+
     - shell: bash
-      env:
-        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       working-directory: ${{ inputs.input-directory }}
       run: |
-        # Add SSH Go Module Private Key
-        mkdir -p ~/.ssh
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
-        ssh-agent -a $SSH_AUTH_SOCK > /dev/null	
-        ssh-add - <<< "${{ inputs.deploy-key }}"
-        echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
-        
         set -x
 
         # Run `buf generate`
