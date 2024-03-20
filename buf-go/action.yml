@@ -28,6 +28,10 @@ runs:
       with:
         version: ${{ inputs.buf-version }}
 
+    - uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ inputs.deploy-key }}
+
     - shell: bash
       working-directory: ${{ inputs.input-directory }}
       run: |
@@ -54,6 +58,8 @@ runs:
           go mod init "github.com/portone-io/go/interface/${SLUG}"
           go work use .
           go mod tidy
+          git config --global url."ssh://git@github.com/".insteadOf https://github.com/
+          go env -w GOPRIVATE='github.com/portone-io/*'
           go build ./...
         )
 
