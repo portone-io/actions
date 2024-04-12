@@ -7,13 +7,16 @@ inputs:
   buf-version:
     description: 'The version of the buf cli to use. (ex: "latest", "1.28.0", default: "1.28.1")'
     default: 1.28.1
+  go-version:
+    description: 'The version of golang to use (default: "1.20")'
+    default: 1.20
 
 runs:
   using: composite
   steps:
     - uses: actions/setup-go@v4
       with:
-        go-version: '1.20'
+        go-version: ${{ inputs.go-version }}
 
     - uses: bufbuild/buf-setup-action@v1
       with:
