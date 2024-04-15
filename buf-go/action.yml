@@ -59,7 +59,6 @@ runs:
         (
           cd "./interface/${SLUG}"
           go mod init "github.com/portone-io/go/interface/${SLUG}"
-          go work use .
           go mod tidy
           git config --global url."ssh://git@github.com/".insteadOf https://github.com/
           go env -w GOPRIVATE='github.com/portone-io/*'
