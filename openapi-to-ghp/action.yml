@@ -30,6 +30,14 @@ inputs:
   registry-url:
     description: 'URL of NPM registry to upload. (default: "https://npm.pkg.github.com")'
     default: https://npm.pkg.github.com
+  generator-docker-repository:
+    description: The Docker repository uses as source for openapitools/openapi-generator-cli image.
+    required: false
+    default: "docker.io"
+  generator-docker-image:
+    description: The Docker image used by the generator.
+    required: false
+    default: "openapitools/openapi-generator-cli"
   openapi-generator-version:
     description: 'The Docker tag of the openapitools/openapi-generator-cli image to use. See https://hub.docker.com/r/openapitools/openapi-generator-cli/tags for available tags. (ex: "latest", "v7.1.0", default: "v6.2.1")'
     default: v6.2.1
@@ -128,6 +136,8 @@ runs:
         generator: ${{ inputs.generator-type }}
         generator-tag: ${{ inputs.openapi-generator-version }}
         command-args: ${{ inputs.generator-cli-args }}
+        docker-repository: ${{ inputs.generator-docker-repository }}
+        docker-image: ${{ inputs.generator-docker-image }}
 
     # Package and publish codes
     - if: steps.check.outputs.result == 'do'
