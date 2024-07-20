@@ -60,6 +60,10 @@ inputs:
 
       If left empty (default behavior), the action will proceed with the default package.json configuration without any custom overrides.
     default: '{}'
+  axios-version:
+    description: 'The axios version in package.json'
+    required: false
+    default: '^0.27.2'
 
 runs:
   using: composite
@@ -189,7 +193,7 @@ runs:
           },
           "files": ${FILES},
           "peerDependencies": {
-            "axios": "^0.27.2"
+            "axios": "${{ inputs.axios-version }}"
           }
         }
         EOF
