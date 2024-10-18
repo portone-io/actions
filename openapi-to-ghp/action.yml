@@ -147,7 +147,7 @@ runs:
     - if: steps.check.outputs.result == 'do'
       uses: actions/setup-node@v3
       with:
-        node-version: latest
+        node-version: '22.9'
         registry-url: ${{ inputs.registry-url }}
         scope: '@${{ inputs.scope }}'
     - if: steps.check.outputs.result == 'do'
