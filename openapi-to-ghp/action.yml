@@ -185,6 +185,7 @@ runs:
             "url": "git+https://github.com/${{ github.repository }}.git"
           },
           "type": "module",
+          "sideEffects": false,
           "version": "${{ steps.x.outputs.version }}",
           "main": "./src/index.ts",
           "publishConfig": {
