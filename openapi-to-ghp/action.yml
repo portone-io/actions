@@ -130,7 +130,7 @@ runs:
 
     # Generate codes from OpenAPI
     - if: steps.check.outputs.result == 'do'
-      uses: openapi-generators/openapitools-generator-action@v1
+      uses: openapi-generators/openapitools-generator-action@v1.5.0
       with:
         openapi-file: ${{ inputs.input }}
         generator: ${{ inputs.generator-type }}
