@@ -43,7 +43,7 @@ inputs:
     default: v7.16.0
   generator-type:
     description: 'The generator you wish to use. See https://openapi-generator.tech/docs/generators/ for available generators. (ex: "javascript", "typescript-fetch", default: "typescript-axios")'
-    default: typescript-fetch
+    default: typescript
   generator-cli-args:
     description: 'Additional arguments to pass through to the generate command. (default: "--additional-properties paramNaming=original,supportsES6=true")'
     default: --additional-properties paramNaming=original,supportsES6=true
