@@ -63,7 +63,7 @@ inputs:
   axios-version:
     description: 'The axios version in package.json'
     required: false
-    default: '^0.27.2'
+    default: '^1.15.0'
 
 runs:
   using: composite
