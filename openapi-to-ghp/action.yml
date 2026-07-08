@@ -134,7 +134,7 @@ runs:
 
     # Generate codes from OpenAPI
     - if: steps.check.outputs.result == 'do'
-      uses: openapi-generators/openapitools-generator-action@v1
+      uses: openapi-generators/openapitools-generator-action@b729d184e6b3459572c37c0e37f88a832e69b552 # 1.5.0
       with:
         openapi-file: ${{ inputs.input }}
         generator: ${{ inputs.generator-type }}
@@ -145,9 +145,9 @@ runs:
 
     # Package and publish codes
     - if: steps.check.outputs.result == 'do'
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # 6.4.0
       with:
-        node-version: '22.9'
+        node-version: '24'
         registry-url: ${{ inputs.registry-url }}
         scope: '@${{ inputs.scope }}'
     - if: steps.check.outputs.result == 'do'
