@@ -74,32 +74,44 @@ runs:
       run: |
         case '${{ inputs.versioning }}' in
           file)
-            echo "version=$(cat VERSION)" >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            version="$(cat VERSION)"
+            publish_args=''
             ;;
 
           tag)
             if [[ $GITHUB_REF != refs/tags/v* ]]; then
               exit 1
             fi
-            echo "version=${GITHUB_REF#refs/tags/v}" >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            version="${GITHUB_REF#refs/tags/v}"
+            publish_args=''
             ;;
 
           canary)
-            echo 'version=0.0.0-canary.${{ github.sha }}' >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=--tag canary' >> "${GITHUB_OUTPUT}"
+            version='0.0.0-canary.${{ github.sha }}'
+            publish_args='--tag canary'
             ;;
 
           manual)
-            echo 'version=${{ inputs.version }}' >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            version='${{ inputs.version }}'
+            publish_args=''
             ;;
 
           *)
             exit 1
             ;;
         esac
+
+        # npm refuses to publish a prerelease version (one containing a
+        # hyphen, e.g. "1.2.0-rc.1") unless an explicit dist-tag is given.
+        # When no tag has been chosen yet, derive it from the prerelease
+        # identifier so the prerelease never moves the "latest" tag.
+        if [[ -z "${publish_args}" && "${version}" == *-* ]]; then
+          prerelease="${version#*-}"
+          publish_args="--tag ${prerelease%%.*}"
+        fi
+
+        echo "version=${version}" >> "${GITHUB_OUTPUT}"
+        echo "publish-args=${publish_args}" >> "${GITHUB_OUTPUT}"
 
     # Ensure that the package does already exist in the registry, and the
     # determined version does not already exist in the registry
