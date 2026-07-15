@@ -1,4 +1,5 @@
 name: OpenAPI to GitHub Packages
+description: OpenAPI to Github Packages in Portone
 
 inputs:
   input:
@@ -75,7 +76,7 @@ runs:
         case '${{ inputs.versioning }}' in
           file)
             echo "version=$(cat VERSION)" >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            echo 'publish-args=--tag latest' >> "${GITHUB_OUTPUT}"
             ;;
 
           tag)
@@ -83,7 +84,7 @@ runs:
               exit 1
             fi
             echo "version=${GITHUB_REF#refs/tags/v}" >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            echo 'publish-args=--tag beta' >> "${GITHUB_OUTPUT}"
             ;;
 
           canary)
@@ -93,7 +94,7 @@ runs:
 
           manual)
             echo 'version=${{ inputs.version }}' >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=' >> "${GITHUB_OUTPUT}"
+            echo 'publish-args=--tag dev' >> "${GITHUB_OUTPUT}"
             ;;
 
           *)
