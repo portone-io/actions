@@ -17,7 +17,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-go@v4
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # 6.5.0
       with:
         go-version: ${{ inputs.go-version }}
 
@@ -27,11 +27,11 @@ runs:
         path: __go__
         ssh-key: ${{ inputs.deploy-key }}
 
-    - uses: bufbuild/buf-setup-action@v1
+    - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # 1.50.0
       with:
         version: ${{ inputs.buf-version }}
 
-    - uses: webfactory/ssh-agent@v0.9.0
+    - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # 0.10.0
       with:
         ssh-private-key: ${{ inputs.deploy-key }}
 
