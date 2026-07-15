@@ -76,7 +76,7 @@ runs:
         case '${{ inputs.versioning }}' in
           file)
             echo "version=$(cat VERSION)" >> "${GITHUB_OUTPUT}"
-            echo 'publish-args=--tag latest' >> "${GITHUB_OUTPUT}"
+            echo 'publish-args=--tag beta' >> "${GITHUB_OUTPUT}"
             ;;
 
           tag)
