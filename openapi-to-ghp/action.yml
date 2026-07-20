@@ -72,8 +72,11 @@ runs:
     # Determine package version using the given versioning policy
     - id: x
       shell: bash
+      env:
+        VERSIONING: ${{ inputs.versioning }}
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
-        case '${{ inputs.versioning }}' in
+        case "${VERSIONING}" in
           file)
             echo "version=$(cat VERSION)" >> "${GITHUB_OUTPUT}"
             echo 'publish-args=--tag beta' >> "${GITHUB_OUTPUT}"
@@ -88,12 +91,12 @@ runs:
             ;;
 
           canary)
-            echo 'version=0.0.0-canary.${{ github.sha }}' >> "${GITHUB_OUTPUT}"
+            echo "version=0.0.0-canary.${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
             echo 'publish-args=--tag canary' >> "${GITHUB_OUTPUT}"
             ;;
 
           manual)
-            echo 'version=${{ inputs.version }}' >> "${GITHUB_OUTPUT}"
+            echo "version=${INPUT_VERSION}" >> "${GITHUB_OUTPUT}"
             echo 'publish-args=--tag dev' >> "${GITHUB_OUTPUT}"
             ;;
 
@@ -106,25 +109,32 @@ runs:
     # determined version does not already exist in the registry
     - id: check
       shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REGISTRY_URL: ${{ inputs.registry-url }}
+        SCOPE: ${{ inputs.scope }}
+        NAME: ${{ inputs.name }}
+        PKG_VERSION: ${{ steps.x.outputs.version }}
+        VERSIONING: ${{ inputs.versioning }}
       run: |
         set -o pipefail
 
         # Make sure that given version of package of package itself does not
         # already exist in the registry
         if ! (
-          curl -fH 'Authorization: Bearer ${{ github.token }}' '${{ inputs.registry-url }}/@${{ inputs.scope }}/${{ inputs.name }}' |
-          jq -e '.versions | keys | index("${{ steps.x.outputs.version }}")'
+          curl -fH "Authorization: Bearer ${GH_TOKEN}" "${REGISTRY_URL}/@${SCOPE}/${NAME}" |
+          jq -e --arg v "${PKG_VERSION}" '.versions | keys | index($v)'
         ); then
           echo 'result=do' >> "${GITHUB_OUTPUT}"
           exit 0
         fi
 
         # If given version of package does already exist, we cannot proceed
-        echo 'Package "@${{ inputs.scope }}/${{ inputs.name }}@${{ steps.x.outputs.version }}" already exists in the package registry'
+        echo "Package \"@${SCOPE}/${NAME}@${PKG_VERSION}\" already exists in the package registry"
 
         # Skip silently if versioning policy is "file" or "canary"
-        if [[ '${{ inputs.versioning }}' == 'file' || '${{ inputs.versioning }}' == 'canary' ]]; then
-          echo 'Since current versioning policy is "${{ inputs.versioning }}", this action will silently do nothing'
+        if [[ "${VERSIONING}" == 'file' || "${VERSIONING}" == 'canary' ]]; then
+          echo "Since current versioning policy is \"${VERSIONING}\", this action will silently do nothing"
           echo 'result=skip' >> "${GITHUB_OUTPUT}"
           exit 0
         fi
@@ -155,49 +165,52 @@ runs:
       shell: bash
       env:
         NODE_AUTH_TOKEN: ${{ github.token }}
+        GENERATOR_TYPE: ${{ inputs.generator-type }}
+        ADDITIONAL_FILES: ${{ inputs.additional-files }}
+        OVERRIDE_PACKAGEJSON: ${{ inputs.override-packagejson }}
+        SCOPE: ${{ inputs.scope }}
+        NAME: ${{ inputs.name }}
+        PKG_VERSION: ${{ steps.x.outputs.version }}
+        REGISTRY_URL: ${{ inputs.registry-url }}
+        AXIOS_VERSION: ${{ inputs.axios-version }}
+        PUBLISH_ARGS: ${{ steps.x.outputs.publish-args }}
       run: |
-        mv '${{ inputs.generator-type }}-client' '${{ runner.temp }}/src'
+        mv "${GENERATOR_TYPE}-client" "${RUNNER_TEMP}/src"
 
-        readarray -d '' ENTRIES < <(yq -0 'to_entries | .[] | @json' <<'EOF'
-        ${{ inputs.additional-files }}
-        EOF
-        )
+        readarray -d '' ENTRIES < <(yq -0 'to_entries | .[] | @json' <<<"${ADDITIONAL_FILES}")
 
         for ENTRY in "${ENTRIES[@]}"; do
           SRC=$(jq -r '.key' <<< "${ENTRY}")
           DST=$(jq -r '.value' <<< "${ENTRY}")
 
-          mkdir -p "$(dirname "${{ runner.temp }}/${DST}")"
-          cp "${SRC}" "${{ runner.temp }}/${DST}"
+          mkdir -p "$(dirname "${RUNNER_TEMP}/${DST}")"
+          cp "${SRC}" "${RUNNER_TEMP}/${DST}"
         done
 
-        FILES=$(yq -r 'to_entries | ["src/**.ts"] + map(.value) | @json' <<'EOF'
-        ${{ inputs.additional-files }}
-        EOF
-        )
+        FILES=$(yq -r 'to_entries | ["src/**.ts"] + map(.value) | @json' <<<"${ADDITIONAL_FILES}")
 
-        cd '${{ runner.temp }}'
+        cd "${RUNNER_TEMP}"
 
-        cat - <<EOF <(echo '${{ inputs.override-packagejson }}') | jq -s '.[0] * .[1]' > package.json
+        cat - <<EOF <(printf '%s\n' "${OVERRIDE_PACKAGEJSON}") | jq -s '.[0] * .[1]' > package.json
         {
-          "name": "@${{ inputs.scope }}/${{ inputs.name }}",
+          "name": "@${SCOPE}/${NAME}",
           "repository": {
             "type": "git",
-            "url": "git+https://github.com/${{ github.repository }}.git"
+            "url": "git+https://github.com/${GITHUB_REPOSITORY}.git"
           },
           "type": "module",
           "sideEffects": false,
-          "version": "${{ steps.x.outputs.version }}",
+          "version": "${PKG_VERSION}",
           "main": "./src/index.ts",
           "publishConfig": {
             "access": "restricted",
-            "registry": "${{ inputs.registry-url}}"
+            "registry": "${REGISTRY_URL}"
           },
           "files": ${FILES},
           "peerDependencies": {
-            "axios": "${{ inputs.axios-version }}"
+            "axios": "${AXIOS_VERSION}"
           }
         }
         EOF
 
-        npm publish ${{ steps.x.outputs.publish-args }}
+        npm publish ${PUBLISH_ARGS}

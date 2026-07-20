@@ -1,4 +1,5 @@
 name: Buf go build
+description: Build gRPC schema files into Go codes with buf and publish them to the portone-io/go repository.
 
 inputs:
   input-directory:
@@ -21,11 +22,12 @@ runs:
       with:
         go-version: ${{ inputs.go-version }}
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # 4.3.1
       with:
         repository: portone-io/go
         path: __go__
         ssh-key: ${{ inputs.deploy-key }}
+        persist-credentials: false
 
     - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # 1.50.0
       with:
@@ -41,21 +43,21 @@ runs:
         set -x
 
         # Run `buf generate`
-        SLUG=$('${{ github.action_path }}/repository-to-slug' '${{ github.repository }}')
-        buf generate --template "$('${{ github.action_path }}/generate-template' '${{ runner.temp }}/buf' "${SLUG}")"
-        # Build result will be stored at: '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}"
+        SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
+        buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
+        # Build result will be stored at: "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
         (
-          cd '${{ runner.temp }}/buf'
+          cd "${RUNNER_TEMP}/buf"
           find . -type f
         )
 
         # Go to portone-io/go repository
-        cd '${{ github.workspace }}/__go__'
+        cd "${GITHUB_WORKSPACE}/__go__"
         mkdir -p interface
 
         # Replace previous build result with new one
         rm -rf "interface/${SLUG}"
-        mv '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}" ./interface/
+        mv "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}" ./interface/
         (
           cd "./interface/${SLUG}"
           go mod init "github.com/portone-io/go/interface/${SLUG}"
@@ -78,7 +80,7 @@ runs:
         # older than the latest tag.
         VERSION=$(
           git ls-remote --tags --refs origin |
-          '${{ github.action_path }}/check-version' "${SLUG}" '${{ github.ref }}'
+          "${GITHUB_ACTION_PATH}/check-version" "${SLUG}" "${GITHUB_REF}"
         )
 
         git config user.name github-actions
