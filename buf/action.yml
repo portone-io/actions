@@ -1,4 +1,5 @@
 name: Buf
+description: Lint gRPC schema files with buf, check breaking changes, and generate and build Go codes.
 
 inputs:
   input-directory:
@@ -24,26 +25,28 @@ runs:
 
     - shell: bash
       working-directory: ${{ inputs.input-directory }}
+      env:
+        INPUT_DIRECTORY: ${{ inputs.input-directory }}
       run: |
         # Lint .proto codes
         buf lint
 
         # Check if there's any breaking changes. It checks backword
-        # compatibility of '${{ inputs.input-directory }}/*.proto' againt
+        # compatibility of "${INPUT_DIRECTORY}/*.proto" againt
         # origin/main branch
-        buf breaking --against '${{ github.workspace }}/.git#branch=origin/main,subdir=${{ inputs.input-directory }}'
+        buf breaking --against "${GITHUB_WORKSPACE}/.git#branch=origin/main,subdir=${INPUT_DIRECTORY}"
 
         # Run `buf generate`
-        SLUG=$('${{ github.action_path }}/repository-to-slug' '${{ github.repository }}')
-        buf generate --template "$('${{ github.action_path }}/generate-template' '${{ runner.temp }}/buf' "${SLUG}")"
-        # Build result will be stored at: '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}"
+        SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
+        buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
+        # Build result will be stored at: "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
         (
-          cd '${{ runner.temp }}/buf'
+          cd "${RUNNER_TEMP}/buf"
           find . -type f
         )
 
         (
-          cd '${{ runner.temp }}/buf/github.com/portone-io/go/interface/'"${SLUG}"
+          cd "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
           go mod init "github.com/portone-io/go/interface/${SLUG}"
           go mod tidy
           go build ./...
