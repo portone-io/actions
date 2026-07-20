@@ -41,10 +41,10 @@ inputs:
     default: "openapitools/openapi-generator-cli"
   openapi-generator-version:
     description: 'The Docker tag of the openapitools/openapi-generator-cli image to use. See https://hub.docker.com/r/openapitools/openapi-generator-cli/tags for available tags. (ex: "latest", "v7.1.0", default: "v6.2.1")'
-    default: v6.2.1
+    default: v7.16.0
   generator-type:
     description: 'The generator you wish to use. See https://openapi-generator.tech/docs/generators/ for available generators. (ex: "javascript", "typescript-fetch", default: "typescript-axios")'
-    default: typescript-axios
+    default: typescript
   generator-cli-args:
     description: 'Additional arguments to pass through to the generate command. (default: "--additional-properties paramNaming=original,supportsES6=true")'
     default: --additional-properties paramNaming=original,supportsES6=true
@@ -61,10 +61,6 @@ inputs:
 
       If left empty (default behavior), the action will proceed with the default package.json configuration without any custom overrides.
     default: '{}'
-  axios-version:
-    description: 'The axios version in package.json'
-    required: false
-    default: '^1.15.0'
 
 runs:
   using: composite
@@ -187,7 +183,10 @@ runs:
           cp "${SRC}" "${RUNNER_TEMP}/${DST}"
         done
 
-        FILES=$(yq -r 'to_entries | ["src/**.ts"] + map(.value) | @json' <<<"${ADDITIONAL_FILES}")
+        FILES=$(yq -r 'to_entries | ["src/**/**.ts"] + map(.value) | @json' <<'EOF'
+        ${{ inputs.additional-files }}
+        EOF
+        )
 
         cd "${RUNNER_TEMP}"
 
@@ -206,10 +205,7 @@ runs:
             "access": "restricted",
             "registry": "${REGISTRY_URL}"
           },
-          "files": ${FILES},
-          "peerDependencies": {
-            "axios": "${AXIOS_VERSION}"
-          }
+          "files": ${FILES}
         }
         EOF
 
