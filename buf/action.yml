@@ -51,7 +51,10 @@ runs:
         if [ -z "$SLUG" ]; then
           SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
         else
-          GOWORK=off go -C "${GITHUB_ACTION_PATH}/../buf/validate-slug" run -mod=readonly . "$SLUG"
+          (
+            cd "${GITHUB_ACTION_PATH}/../buf/validate-slug"
+            GOWORK=off go run -mod=readonly . "$SLUG"
+          )
         fi
 
         buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
