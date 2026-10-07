@@ -2,6 +2,12 @@ name: Buf
 description: Lint gRPC schema files with buf, check breaking changes, and generate and build Go codes.
 
 inputs:
+  slug:
+    description: 'Go module name under interface/. Defaults to the name derived from the repository.'
+    default: ''
+  breaking-against:
+    description: 'Buf comparison input. Defaults to input-directory on origin/main.'
+    default: ''
   input-directory:
     description: 'Directory where the `*.proto` files reside. (default: "./protobuf")'
     default: './protobuf'
@@ -27,6 +33,8 @@ runs:
       working-directory: ${{ inputs.input-directory }}
       env:
         INPUT_DIRECTORY: ${{ inputs.input-directory }}
+        SLUG: ${{ inputs.slug }}
+        BREAKING_AGAINST: ${{ inputs.breaking-against }}
       run: |
         # Lint .proto codes
         buf lint
@@ -34,10 +42,18 @@ runs:
         # Check if there's any breaking changes. It checks backword
         # compatibility of "${INPUT_DIRECTORY}/*.proto" againt
         # origin/main branch
-        buf breaking --against "${GITHUB_WORKSPACE}/.git#branch=origin/main,subdir=${INPUT_DIRECTORY}"
+        if [ -z "$BREAKING_AGAINST" ]; then
+          BREAKING_AGAINST="${GITHUB_WORKSPACE}/.git#branch=origin/main,subdir=${INPUT_DIRECTORY}"
+        fi
+        buf breaking --against "$BREAKING_AGAINST"
 
         # Run `buf generate`
-        SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
+        if [ -z "$SLUG" ]; then
+          SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
+        else
+          GOWORK=off go -C "${GITHUB_ACTION_PATH}/../buf/validate-slug" run -mod=readonly . "$SLUG"
+        fi
+
         buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
         # Build result will be stored at: "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
         (

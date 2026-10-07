@@ -30,11 +30,18 @@ References
 --------
 ```yaml
 - uses: actions/checkout@v4
-- uses: portone-io/actions/buf@main
+- uses: portone-io/actions/buf-go@main
   with:
     # Directory where the `*.proto` files reside.
     # (default: "./protobuf")
     input-directory: foo/bar/protobuf
+
+    # Go module name under interface/. By default, derived from the repository.
+    slug: merchant
+
+    # Prefix of the source release tag. Defaults to v.
+    # With this prefix, interface/v1.2.3 publishes interface/merchant/v1.2.3.
+    tag-prefix: interface/v
 
     # The version of the buf cli to use.
     # (ex: "latest", "1.28.0", default: "1.28.1")

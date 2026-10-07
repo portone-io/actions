@@ -2,6 +2,12 @@ name: Buf go build
 description: Build gRPC schema files into Go codes with buf and publish them to the portone-io/go repository.
 
 inputs:
+  slug:
+    description: 'Go module name under interface/. Defaults to the name derived from the repository.'
+    default: ''
+  tag-prefix:
+    description: 'Release tag prefix before the X.Y.Z version.'
+    default: 'v'
   input-directory:
     description: 'Directory where the `*.proto` files reside. (default: "./protobuf")'
     default: './protobuf'
@@ -39,11 +45,19 @@ runs:
 
     - shell: bash
       working-directory: ${{ inputs.input-directory }}
+      env:
+        SLUG: ${{ inputs.slug }}
+        TAG_PREFIX: ${{ inputs.tag-prefix }}
       run: |
         set -x
 
         # Run `buf generate`
-        SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
+        if [ -z "$SLUG" ]; then
+          SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
+        else
+          GOWORK=off go -C "${GITHUB_ACTION_PATH}/../buf/validate-slug" run -mod=readonly . "$SLUG"
+        fi
+
         buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
         # Build result will be stored at: "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
         (
@@ -80,7 +94,7 @@ runs:
         # older than the latest tag.
         VERSION=$(
           git ls-remote --tags --refs origin |
-          "${GITHUB_ACTION_PATH}/check-version" "${SLUG}" "${GITHUB_REF}"
+          "${GITHUB_ACTION_PATH}/check-version" "${SLUG}" "${GITHUB_REF}" "${TAG_PREFIX}"
         )
 
         git config user.name github-actions
