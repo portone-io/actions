@@ -32,6 +32,12 @@ References
     # (default: "./protobuf")
     input-directory: foo/bar/protobuf
 
+    # Go module name under interface/. By default, derived from the repository.
+    slug: merchant
+
+    # Buf comparison input. By default, input-directory on origin/main.
+    breaking-against: /path/to/base/protobuf
+
     # The version of the buf cli to use.
     # (ex: "latest", "1.28.0", default: "1.28.1")
     buf-version: 1.28.1

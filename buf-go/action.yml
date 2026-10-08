@@ -1,15 +1,31 @@
+---
 name: Buf go build
-description: Build gRPC schema files into Go codes with buf and publish them to the portone-io/go repository.
+description: >-
+  Build gRPC schema files into Go codes with buf
+  and publish them to the portone-io/go repository.
 
 inputs:
+  slug:
+    description: >-
+      Go module name under interface/.
+      Defaults to the name derived from the repository.
+    default: ''
+  tag-prefix:
+    description: 'Release tag prefix before the X.Y.Z version.'
+    default: 'v'
   input-directory:
-    description: 'Directory where the `*.proto` files reside. (default: "./protobuf")'
+    description: >-
+      Directory where the `*.proto` files reside. (default: "./protobuf")
     default: './protobuf'
   buf-version:
-    description: 'The version of the buf cli to use. (ex: "latest", "1.28.0", default: "1.28.1")'
+    description: >-
+      The version of the buf cli to use.
+      (ex: "latest", "1.28.0", default: "1.28.1")
     default: 1.28.1
   deploy-key:
-    description: 'Deploy key (OpenSSH private key) which have write permission to portone-io/go repository'
+    description: >-
+      Deploy key (OpenSSH private key) which have write permission
+      to portone-io/go repository
     required: true
   go-version:
     description: 'The version of golang to use (default: "1.20")'
@@ -18,34 +34,55 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # 6.5.0
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # 6.5.0
       with:
         go-version: ${{ inputs.go-version }}
 
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # 4.3.1
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # 4.3.1
       with:
         repository: portone-io/go
         path: __go__
         ssh-key: ${{ inputs.deploy-key }}
         persist-credentials: false
 
-    - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # 1.50.0
+    # 1.50.0
+    - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99
       with:
         version: ${{ inputs.buf-version }}
 
-    - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # 0.10.0
+    # 0.10.0
+    - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555
       with:
         ssh-private-key: ${{ inputs.deploy-key }}
 
     - shell: bash
       working-directory: ${{ inputs.input-directory }}
+      env:
+        SLUG: ${{ inputs.slug }}
+        TAG_PREFIX: ${{ inputs.tag-prefix }}
       run: |
         set -x
 
         # Run `buf generate`
-        SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
-        buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
-        # Build result will be stored at: "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
+        if [ -z "$SLUG" ]; then
+          SLUG=$(
+            "${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}"
+          )
+        fi
+
+        case "$SLUG" in
+          ''|.|..|*/*|*\\*)
+            echo '::error::slug must be a single directory name'
+            exit 1
+            ;;
+        esac
+
+        buf generate --template "$(
+          "${GITHUB_ACTION_PATH}/generate-template" \
+            "${RUNNER_TEMP}/buf" "${SLUG}"
+        )"
+        # Build result under ${RUNNER_TEMP}/buf:
+        # github.com/portone-io/go/interface/${SLUG}
         (
           cd "${RUNNER_TEMP}/buf"
           find . -type f
@@ -57,12 +94,14 @@ runs:
 
         # Replace previous build result with new one
         rm -rf "interface/${SLUG}"
-        mv "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}" ./interface/
+        mv "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}" \
+          ./interface/
         (
           cd "./interface/${SLUG}"
           go mod init "github.com/portone-io/go/interface/${SLUG}"
           go mod tidy
-          git config --global url."ssh://git@github.com/".insteadOf https://github.com/
+          git config --global url."ssh://git@github.com/".insteadOf \
+            https://github.com/
           go env -w GOPRIVATE='github.com/portone-io/*'
           go build ./...
         )
@@ -80,7 +119,8 @@ runs:
         # older than the latest tag.
         VERSION=$(
           git ls-remote --tags --refs origin |
-          "${GITHUB_ACTION_PATH}/check-version" "${SLUG}" "${GITHUB_REF}"
+          "${GITHUB_ACTION_PATH}/check-version" \
+            "${SLUG}" "${GITHUB_REF}" "${TAG_PREFIX}"
         )
 
         git config user.name github-actions

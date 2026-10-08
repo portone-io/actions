@@ -141,6 +141,12 @@ References
     #   does exist in the package registry.
     versioning: manual
 
+    # Prefix removed from release tags with versioning: tag. Defaults to v.
+    tag-prefix: interface/v
+
+    # Override the NPM distribution tag (file/tag: beta, canary: canary, manual: dev).
+    dist-tag: latest
+
     # If "versioning" parameter is "manual", this field will be used as version of built NPM package.
     # Otherwise, ignored.
     version: 1.2.3

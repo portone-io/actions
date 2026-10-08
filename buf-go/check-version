@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from sys import argv, stdin, stderr
-from re import fullmatch
+from re import escape, fullmatch
 
 def show_help_then_fail():
     print(f'''\
@@ -8,7 +8,7 @@ Parse git-ls-remote(1) output to determine the current latest tag for a given
 slug, then check if given tag from github.ref is newer than the latest tag. It
 fails if given github.ref is not a tag or if it is older than the latest tag.
 
-Usage: {argv[0]} <slug> <github.ref>
+Usage: {argv[0]} <slug> <github.ref> [tag-prefix]
 
 Sample:
   git ls-remote --tags --refs origin | {argv[0]} merchant refs/tags/v1.2.3\
@@ -18,11 +18,14 @@ Sample:
 def sem(ver: tuple[int, int, int]) -> str:
     return f'{ver[0]}.{ver[1]}.{ver[2]}'
 
-if len(argv) != 3:
+if len(argv) not in (3, 4):
     show_help_then_fail()
 
-_, slug, ref = argv
-result = fullmatch(r'^refs/tags/v(\d+)\.(\d+)\.(\d+)$', ref) or show_help_then_fail()
+slug, ref = argv[1:3]
+tag_prefix = argv[3] if len(argv) == 4 else "v"
+if not tag_prefix:
+    show_help_then_fail()
+result = fullmatch(rf'^refs/tags/{escape(tag_prefix)}(\d+)\.(\d+)\.(\d+)$', ref) or show_help_then_fail()
 newversion = tuple(map(int, result.groups()))
 
 latest = max(
