@@ -1,18 +1,27 @@
+---
 name: Buf
-description: Lint gRPC schema files with buf, check breaking changes, and generate and build Go codes.
+description: >-
+  Lint gRPC schema files with buf, check breaking changes,
+  and generate and build Go codes.
 
 inputs:
   slug:
-    description: 'Go module name under interface/. Defaults to the name derived from the repository.'
+    description: >-
+      Go module name under interface/.
+      Defaults to the name derived from the repository.
     default: ''
   breaking-against:
-    description: 'Buf comparison input. Defaults to input-directory on origin/main.'
+    description: >-
+      Buf comparison input. Defaults to input-directory on origin/main.
     default: ''
   input-directory:
-    description: 'Directory where the `*.proto` files reside. (default: "./protobuf")'
+    description: >-
+      Directory where the `*.proto` files reside. (default: "./protobuf")
     default: './protobuf'
   buf-version:
-    description: 'The version of the buf cli to use. (ex: "latest", "1.28.0", default: "1.28.1")'
+    description: >-
+      The version of the buf cli to use.
+      (ex: "latest", "1.28.0", default: "1.28.1")
     default: 1.28.1
   go-version:
     description: 'The version of golang to use (default: "1.20")'
@@ -21,11 +30,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # 6.5.0
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16  # 6.5.0
       with:
         go-version: ${{ inputs.go-version }}
 
-    - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # 1.50.0
+    # 1.50.0
+    - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99
       with:
         version: ${{ inputs.buf-version }}
 
@@ -43,13 +53,16 @@ runs:
         # compatibility of "${INPUT_DIRECTORY}/*.proto" againt
         # origin/main branch
         if [ -z "$BREAKING_AGAINST" ]; then
-          BREAKING_AGAINST="${GITHUB_WORKSPACE}/.git#branch=origin/main,subdir=${INPUT_DIRECTORY}"
+          BREAKING_AGAINST="${GITHUB_WORKSPACE}/.git#branch=origin/main"
+          BREAKING_AGAINST+=",subdir=${INPUT_DIRECTORY}"
         fi
         buf breaking --against "$BREAKING_AGAINST"
 
         # Run `buf generate`
         if [ -z "$SLUG" ]; then
-          SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
+          SLUG=$(
+            "${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}"
+          )
         fi
 
         case "$SLUG" in
@@ -59,8 +72,12 @@ runs:
             ;;
         esac
 
-        buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
-        # Build result will be stored at: "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
+        buf generate --template "$(
+          "${GITHUB_ACTION_PATH}/generate-template" \
+            "${RUNNER_TEMP}/buf" "${SLUG}"
+        )"
+        # Build result under ${RUNNER_TEMP}/buf:
+        # github.com/portone-io/go/interface/${SLUG}
         (
           cd "${RUNNER_TEMP}/buf"
           find . -type f
