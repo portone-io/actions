@@ -54,12 +54,14 @@ runs:
         # Run `buf generate`
         if [ -z "$SLUG" ]; then
           SLUG=$("${GITHUB_ACTION_PATH}/repository-to-slug" "${GITHUB_REPOSITORY}")
-        else
-          (
-            cd "${GITHUB_ACTION_PATH}/../buf/validate-slug"
-            GOWORK=off go run -mod=readonly . "$SLUG"
-          )
         fi
+
+        case "$SLUG" in
+          ''|.|..|*/*|*\\*)
+            echo '::error::slug must be a single directory name'
+            exit 1
+            ;;
+        esac
 
         buf generate --template "$("${GITHUB_ACTION_PATH}/generate-template" "${RUNNER_TEMP}/buf" "${SLUG}")"
         # Build result will be stored at: "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
