@@ -24,8 +24,17 @@ inputs:
       (ex: "latest", "1.28.0", default: "1.28.1")
     default: 1.28.1
   go-version:
-    description: 'The version of golang to use (default: "1.20")'
-    default: '1.20'
+    description: 'The version of golang to use (default: "1.26")'
+    default: '1.26'
+  go-mod-version:
+    description: 'The go directive of the generated go.mod (default: "1.26.0")'
+    default: '1.26.0'
+  grpc-version:
+    description: 'The version of google.golang.org/grpc (default: "v1.84.0")'
+    default: 'v1.84.0'
+  protobuf-version:
+    description: 'The version of google.golang.org/protobuf (default: "v1.36.12")'
+    default: 'v1.36.12'
 
 runs:
   using: composite
@@ -44,6 +53,9 @@ runs:
       env:
         INPUT_DIRECTORY: ${{ inputs.input-directory }}
         SLUG: ${{ inputs.slug }}
+        GO_MOD_VERSION: ${{ inputs.go-mod-version }}
+        GRPC_VERSION: ${{ inputs.grpc-version }}
+        PROTOBUF_VERSION: ${{ inputs.protobuf-version }}
         BREAKING_AGAINST: ${{ inputs.breaking-against }}
       run: |
         # Lint .proto codes
@@ -86,6 +98,8 @@ runs:
         (
           cd "${RUNNER_TEMP}/buf/github.com/portone-io/go/interface/${SLUG}"
           go mod init "github.com/portone-io/go/interface/${SLUG}"
+          go mod edit -go="${GO_MOD_VERSION}"
+          go get "google.golang.org/grpc@${GRPC_VERSION}" "google.golang.org/protobuf@${PROTOBUF_VERSION}"
           go mod tidy
           go build ./...
         )
